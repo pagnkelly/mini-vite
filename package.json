@@ -1,0 +1,46 @@
+{
+  "name": "mini-vite",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/node/index.js",
+  "types": "./dist/node/index.d.ts",
+  "engines": {
+    "node": "^18.0.0 || >=20.0.0"
+  },
+  "scripts": {
+    "test": "minivite --port 3333 --open",
+    "dev": "rimraf dist && pnpm run build-bundle",
+    "build-bundle": "rollup --config rollup.config.ts --configPlugin typescript"
+  },
+  "bin": {
+    "minivite": "bin/minivite.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pagnkelly/mini-vite.git"
+  },
+  "author": "pagnkelly",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pagnkelly/mini-vite/issues"
+  },
+  "homepage": "https://github.com/pagnkelly/mini-vite#readme",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/node": "^20.11.19",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
+    "cac": "^6.7.14",
+    "eslint": "^8.56.0",
+    "eslint-define-config": "^2.1.0",
+    "eslint-plugin-i": "^2.29.1",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-regexp": "^2.2.0",
+    "rimraf": "^5.0.5",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "rollup": "^4.12.0"
+  }
+}
