@@ -14,6 +14,8 @@ function createNodeConfig(isProduction: boolean) {
     },
     output: {
       dir: './dist',
+      entryFileNames: `node/[name].js`,
+      exports: 'named',
       sourcemap: !isProduction,
       format: 'esm',
     },
@@ -37,6 +39,8 @@ function createCjsConfig(isProduction: boolean) {
     output: {
       dir: './dist',
       sourcemap: !isProduction,
+      entryFileNames: `node-cjs/[name].cjs`,
+      exports: 'named',
       format: 'cjs',
     },
     plugins: [
@@ -56,7 +60,7 @@ export default (commandLineArgs: any): RollupOptions[] => {
 
   return defineConfig([
     createNodeConfig(isProduction),
-    createCjsConfig(isProduction),
+    // createCjsConfig(isProduction),
   ])
 }
 

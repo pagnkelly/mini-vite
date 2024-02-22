@@ -2,6 +2,7 @@
   "name": "mini-vite",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "./dist/node/index.js",
   "types": "./dist/node/index.d.ts",
   "engines": {
@@ -9,7 +10,7 @@
   },
   "scripts": {
     "test": "minivite --port 3333 --open",
-    "dev": "rimraf dist && pnpm run build-bundle",
+    "dev": "rimraf dist && pnpm run build-bundle -w",
     "build-bundle": "rollup --config rollup.config.ts --configPlugin typescript"
   },
   "bin": {
@@ -31,6 +32,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
     "cac": "^6.7.14",
+    "connect": "^3.7.0",
     "eslint": "^8.56.0",
     "eslint-define-config": "^2.1.0",
     "eslint-plugin-i": "^2.29.1",
