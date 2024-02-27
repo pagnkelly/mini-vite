@@ -15,6 +15,7 @@ function createNodeConfig(isProduction: boolean) {
     output: {
       dir: './dist',
       entryFileNames: `node/[name].js`,
+      chunkFileNames: 'node/chunks/dep-[hash].js',
       exports: 'named',
       sourcemap: !isProduction,
       format: 'esm',
