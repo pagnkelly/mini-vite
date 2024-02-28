@@ -6,7 +6,6 @@ export function htmlFallbackMiddleware (root: string,fsUtils: FsUtils = commonFs
   
   return function viteHtmlFallbackMiddleware(req: any, res: any, next: any) {
     const url = cleanUrl(req.url!)
-    console.log(url, 'url')
     const pathname = decodeURIComponent(url)
     let newUrl = url
     

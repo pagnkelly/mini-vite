@@ -9,7 +9,12 @@ import {
 import {
   htmlFallbackMiddleware
 } from './middlewares/htmlFallback'
+import {
+  transformMiddleware
+} from './middlewares/transform'
 import { getFsUtils } from '../fsUtils'
+import { servePublicMiddleware } from './middlewares/static'
+import { initPublicFiles } from '../publicDir'
 export interface ViteDevServer {
   config: ResolvedConfig
   httpServer: any
@@ -42,6 +47,13 @@ export async function createServer(inlineConfig: InlineConfig = {}) {
       return devHtmlTransformFn(server, url, html, originalUrl)
     },
   }
+  const initPublicFilesPromise = initPublicFiles(config)
+  const publicFiles = await initPublicFilesPromise
+  const { publicDir } = config
+  if (publicDir) {
+    middlewares.use(servePublicMiddleware(server, publicFiles))
+  }
+  middlewares.use(transformMiddleware(server))
   middlewares.use(htmlFallbackMiddleware(root, getFsUtils(config)));
   middlewares.use(indexHtmlMiddleware(root, server))
   return server

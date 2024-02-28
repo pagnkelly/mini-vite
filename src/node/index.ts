@@ -1,0 +1,3 @@
+export {
+  defineConfig,
+} from './config'

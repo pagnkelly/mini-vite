@@ -22,7 +22,8 @@ cli
     try {
       const server = await createServer({
         root,
-        server: options
+        server: options,
+        configFile: options.config,
       })
 
       await server.listen()

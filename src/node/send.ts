@@ -7,7 +7,12 @@ import type {
 export interface SendOptions {
   headers?: OutgoingHttpHeaders
 }
-
+const alias: Record<string, string | undefined> = {
+  js: 'text/javascript',
+  css: 'text/css',
+  html: 'text/html',
+  json: 'application/json',
+};
 export function send(
   req: IncomingMessage,
   res: ServerResponse,
@@ -23,6 +28,8 @@ export function send(
       res.setHeader(name, headers[name]!)
     }
   }
+
+  res.setHeader('Content-Type', alias[type] || type);
   res.statusCode = 200
   res.end(content)
   return
