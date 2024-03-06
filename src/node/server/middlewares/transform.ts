@@ -1,9 +1,9 @@
 import type { ViteDevServer } from "..";
-import { cleanUrl, isJSRequest } from "../../utils";
+import { cleanUrl, isImportRequest, isJSRequest, isCSSRequest } from "../../utils";
 import path from 'node:path'
-import fsp from 'node:fs/promises'
 import { getFsUtils } from "../../fsUtils";
 import { send } from "../../send";
+import { transformRequest } from "../transformRequest";
 
 const knownIgnoreList = new Set(['/', '/favicon.ico'])
 export function transformMiddleware(server: ViteDevServer) {
@@ -13,12 +13,26 @@ export function transformMiddleware(server: ViteDevServer) {
     }
     const fsUtils = getFsUtils(server.config)
     const url = req.url && cleanUrl(req.url)
-    if (isJSRequest(url)) {
+    if (isJSRequest(url) ||
+        isImportRequest(url) ||
+        isCSSRequest(url) 
+    ) {
       const filePath = path.join(server.config.root, decodeURIComponent(url))
       if (fsUtils.existsSync(filePath)) {
         try {
-          let code = await fsp.readFile(filePath, 'utf-8')
-          return send(req, res, code, 'js', { headers: server.config.server.headers })
+          const result = await transformRequest(server, filePath)
+          console.log(url, result, 'aaaa')
+
+          if (result) {
+            const type = isCSSRequest(url) ? 'css' : 'js'
+            return send(req, res, result.code, type, {
+                etag: result.etag,
+                // allow browser to cache npm deps!
+                cacheControl: 'no-cache',
+                headers: server.config.server.headers,
+                map: result.map,
+            });
+          }
         } catch (e) {
           return next(e)
         }

@@ -2,9 +2,14 @@
 import { normalizePath } from './utils'
 import path from 'node:path'
 import fs from 'node:fs'
+import vue from '@vitejs/plugin-vue'
+import { importAnalysisPlugin } from './plugins/importAnalysis'
+import { resolvePlugin } from './plugins/resolve'
 export interface ResolvedConfig {
+  base: string
   root: string
-  server: any,
+  server: any
+  plugins?: any
   publicDir: string
 }
 export interface InlineConfig {
@@ -43,6 +48,8 @@ export async function resolveConfig(inlineConfig: InlineConfig) {
     }
   }
   
+  const userPlugins: any = [vue()]
+
   const { publicDir } = config
   const resolvedPublicDir =
     publicDir !== false && publicDir !== ''
@@ -54,10 +61,13 @@ export async function resolveConfig(inlineConfig: InlineConfig) {
         )
       : ''
   let resolved = {
+    base: '/',
     root: resolvedRoot,
     server: config.server,
-    publicDir: resolvedPublicDir
+    publicDir: resolvedPublicDir,
+    plugins: userPlugins
   }
+  resolved.plugins = [...resolved.plugins, resolvePlugin(resolved), importAnalysisPlugin(resolved)]
   return resolved
 }
 

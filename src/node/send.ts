@@ -6,6 +6,9 @@ import type {
 
 export interface SendOptions {
   headers?: OutgoingHttpHeaders
+  etag?: string
+  cacheControl?: string
+  map?: any
 }
 const alias: Record<string, string | undefined> = {
   js: 'text/javascript',

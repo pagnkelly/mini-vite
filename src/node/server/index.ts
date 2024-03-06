@@ -15,8 +15,10 @@ import {
 import { getFsUtils } from '../fsUtils'
 import { servePublicMiddleware } from './middlewares/static'
 import { initPublicFiles } from '../publicDir'
+import { createPluginContainer } from './pluginContainer'
 export interface ViteDevServer {
   config: ResolvedConfig
+  pluginContainer: any
   httpServer: any
   listen(port?: number, isRestart?: boolean): Promise<ViteDevServer>
   transformIndexHtml(
@@ -36,9 +38,13 @@ export async function createServer(inlineConfig: InlineConfig = {}) {
   const httpServer = await resolveHttpServer(middlewares)
 
   const devHtmlTransformFn = createDevHtmlTransformFn(config)
+
+  const container = await createPluginContainer(config)
+
   const server: ViteDevServer = {
     config,
     httpServer,
+    pluginContainer: container,
     async listen (port?: number, isRestart?: boolean) {
       await startServer(server, port)
       return server

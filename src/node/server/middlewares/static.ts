@@ -61,7 +61,6 @@ export function servePublicMiddleware(
     ) {
       return next()
     }
-    console.log(req.url, 'req.url')
     serve(req, res, next)
   }
 }
