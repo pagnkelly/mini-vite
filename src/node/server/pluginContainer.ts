@@ -3,6 +3,7 @@ import { ResolvedConfig } from "../config";
 import { join } from 'node:path'
 import { cleanUrl, combineSourcemaps } from "../utils";
 import type { RawSourceMap } from "@ampproject/remapping";
+import { createPluginHookUtils, getHookHandler } from "../plugins";
 
 export async function createPluginContainer(
   config: ResolvedConfig,
@@ -11,6 +12,8 @@ export async function createPluginContainer(
     plugins,
     root,
   } = config
+  const { getSortedPluginHooks, getSortedPlugins } =
+  createPluginHookUtils(plugins)
   class Context {
     constructor () {
   
@@ -120,8 +123,47 @@ export async function createPluginContainer(
       return this.combinedMap
     }
   }
-  
+  const processesing = new Set<Promise<any>>()
+  function handleHookPromise<T>(maybePromise: undefined | T | Promise<T>) {
+    if (!(maybePromise as any)?.then) {
+      return maybePromise
+    }
+    const promise = maybePromise as Promise<T>
+    processesing.add(promise)
+    return promise.finally(() => processesing.delete(promise))
+  }
+  async function hookParallel(
+    hookName: any,
+    context: any,
+    args: any,
+  ): Promise<void> {
+    const parallelPromises: Promise<unknown>[] = []
+    for (const plugin of getSortedPlugins(hookName)) {
+      // Don't throw here if closed, so buildEnd and closeBundle hooks can finish running
+      const hook = plugin[hookName]
+      if (!hook) continue
+
+      const handler: Function = getHookHandler(hook)
+      if ((hook as { sequential?: boolean }).sequential) {
+        await Promise.all(parallelPromises)
+        parallelPromises.length = 0
+        await handler.apply(context(plugin), args(plugin))
+      } else {
+        parallelPromises.push(handler.apply(context(plugin), args(plugin)))
+      }
+    }
+    await Promise.all(parallelPromises)
+  }
   const container = {
+    async buildStart() {
+      await handleHookPromise(
+        hookParallel(
+          'buildStart',
+          (plugin: any) => new Context(),
+          () => [],
+        ),
+      )
+    },
     async transform(code: any, id: any, options: any) {
       const ctx = new TransformContext(id, code, options.inMap)
 
@@ -131,6 +173,7 @@ export async function createPluginContainer(
         if (!handler) continue
         try {
           result = await handler.call(ctx as any, code, id, { ssr: false })
+
         } catch (e) {
           ctx.error(e)
         }
@@ -145,10 +188,11 @@ export async function createPluginContainer(
     async resolveId(rawId: string, importer= join(root, 'index.html'), options: any) {
       const ctx = new Context()
       let id = null
+
       for (const plugin of plugins) {
         if (!plugin.resolveId) continue
         const handler = plugin.resolveId
-        const result = handler.call(ctx as any, rawId, importer, {
+        const result = await handler.call(ctx as any, rawId, importer, {
           attributes: options?.attributes ?? {},
             custom: options?.custom,
             isEntry: !!options?.isEntry,

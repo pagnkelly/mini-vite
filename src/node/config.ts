@@ -5,13 +5,16 @@ import fs from 'node:fs'
 import vue from '@vitejs/plugin-vue'
 import { importAnalysisPlugin } from './plugins/importAnalysis'
 import { resolvePlugin } from './plugins/resolve'
+import { createPluginHookUtils, getHookHandler, getSortedPluginsByHook, Plugin } from './plugins'
 export interface ResolvedConfig {
   base: string
   root: string
   server: any
   plugins?: any
   publicDir: string
+  getSortedPluginHooks: any
 }
+
 export interface InlineConfig {
   /**
    * Project root directory. Can be an absolute path, or a path relative from
@@ -27,8 +30,33 @@ export interface InlineConfig {
   configFile?: string | false
   publicDir?: string | false
 }
+export interface ConfigEnv {
+  command: 'build' | 'serve'
+  mode: string
+  isSsrBuild?: boolean
+  isPreview?: boolean
+}
+async function runConfigHook(
+  config: InlineConfig,
+  plugins: Plugin[],
+  configEnv: ConfigEnv,
+): Promise<InlineConfig> {
+  let conf = config
 
-export async function resolveConfig(inlineConfig: InlineConfig) {
+  for (const p of getSortedPluginsByHook('config', plugins)) {
+    const hook = p.config
+    const handler = getHookHandler(hook)
+    if (handler) {
+      const res = await handler(conf, configEnv)
+      if (res) {
+        conf = mergeConfig(conf, res)
+      }
+    }
+  }
+
+  return conf
+}
+export async function resolveConfig(inlineConfig: InlineConfig): Promise<ResolvedConfig> {
   let config = inlineConfig
 
   // resolve root
@@ -47,9 +75,14 @@ export async function resolveConfig(inlineConfig: InlineConfig) {
       // configFile = loadResult.path
     }
   }
-  
+  const configEnv: ConfigEnv = {
+    mode: 'development',
+    command:'serve',
+    isSsrBuild: false,
+    isPreview: false,
+  }
   const userPlugins: any = [vue()]
-
+  config = await runConfigHook(config, userPlugins, configEnv)
   const { publicDir } = config
   const resolvedPublicDir =
     publicDir !== false && publicDir !== ''
@@ -60,14 +93,25 @@ export async function resolveConfig(inlineConfig: InlineConfig) {
           ),
         )
       : ''
-  let resolved = {
+  let resolved: any = {
+    ...config,
     base: '/',
     root: resolvedRoot,
     server: config.server,
     publicDir: resolvedPublicDir,
-    plugins: userPlugins
+    plugins: userPlugins,
+    getSortedPluginHooks: undefined!
   }
   resolved.plugins = [...resolved.plugins, resolvePlugin(resolved), importAnalysisPlugin(resolved)]
+
+  Object.assign(resolved, createPluginHookUtils(resolved.plugins))
+  await Promise.all(
+    resolved
+      .getSortedPluginHooks('configResolved')
+      .map((hook: any) => {
+        hook(resolved)
+      }),
+  )
   return resolved
 }
 
@@ -107,11 +151,6 @@ export async function loadConfigFromFile(configFile: string | undefined, configR
   }
 }
 
-export function mergeConfig (lconfig: string | undefined, config: InlineConfig) {
-  if (lconfig && config) {
-
-  }
-  return {
-    
-  }
+export function mergeConfig (lconfig: any, config: InlineConfig) {
+  return {...lconfig, ...config }
 }

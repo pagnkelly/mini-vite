@@ -21,8 +21,6 @@ export function transformMiddleware(server: ViteDevServer) {
       if (fsUtils.existsSync(filePath)) {
         try {
           const result = await transformRequest(server, filePath)
-          console.log(url, result, 'aaaa')
-
           if (result) {
             const type = isCSSRequest(url) ? 'css' : 'js'
             return send(req, res, result.code, type, {

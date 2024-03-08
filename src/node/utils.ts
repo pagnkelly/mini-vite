@@ -175,6 +175,9 @@ export function isObject(value: unknown): value is Record<string, any> {
 }
 export const bareImportRE = /^(?![a-zA-Z]:)[\w@](?!.*:\/\/)/
 import os from 'node:os'
+import MagicString from 'magic-string'
+import { ResolvedConfig } from './config'
+import { TransformResult } from 'rollup'
 export const isWindows = os.platform() === 'win32'
 let firstSafeRealPathSyncRun = false
 function optimizeSafeRealPathSync() {
@@ -195,3 +198,26 @@ function windowsSafeRealPathSync(path: string): string {
 export let safeRealpathSync = isWindows
 ? windowsSafeRealPathSync
 : fs.realpathSync.native
+const VOLUME_RE = /^[A-Z]:/i
+export const FS_PREFIX = `/@fs/`
+export const startsWithWordCharRE = /^\w/
+export function fsPathFromId(id: string): string {
+  const fsPath = normalizePath(
+    id.startsWith(FS_PREFIX) ? id.slice(FS_PREFIX.length) : id,
+  )
+  return fsPath[0] === '/' || VOLUME_RE.test(fsPath) ? fsPath : `/${fsPath}`
+}
+export const isNonDriveRelativeAbsolutePath = (p: string): boolean => {
+  if (!isWindows) return p[0] === '/'
+  return windowsDrivePathPrefixRE.test(p)
+}
+const windowsDrivePathPrefixRE = /^[A-Za-z]:[/\\]/
+
+export function transformStableResult(
+ s: MagicString,
+): TransformResult {
+ return {
+   code: s.toString(),
+   map: null
+ }
+}

@@ -53,6 +53,7 @@ export function resolvePackageData(
 ): PackageData | null {
   while (basedir) {
     const pkg = path.join(basedir, 'node_modules', pkgName, 'package.json')
+
     try {
       if (fs.existsSync(pkg)) {
         const pkgPath = safeRealpathSync(pkg)
@@ -60,6 +61,10 @@ export function resolvePackageData(
         return pkgData
       }
     } catch {}
+
+    const nextBasedir = path.dirname(basedir)
+    if (nextBasedir === basedir) break
+    basedir = nextBasedir
   }
   return null
 }

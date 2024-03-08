@@ -62,6 +62,11 @@ export async function createServer(inlineConfig: InlineConfig = {}) {
   middlewares.use(transformMiddleware(server))
   middlewares.use(htmlFallbackMiddleware(root, getFsUtils(config)));
   middlewares.use(indexHtmlMiddleware(root, server))
+
+  const initServer = async () => { 
+    await container.buildStart({})
+  }
+  await initServer()
   return server
 }
 

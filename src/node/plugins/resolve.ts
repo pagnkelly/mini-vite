@@ -1,8 +1,9 @@
 import path from "node:path";
+import fs from 'node:fs'
 import { exports, imports } from 'resolve.exports'
 import { PackageData, resolvePackageData } from "../packages";
-import { bareImportRE, cleanUrl, isInNodeModules, isObject } from "../utils";
-import { commonFsUtils } from "../fsUtils";
+import { FS_PREFIX, bareImportRE, cleanUrl, fsPathFromId, isInNodeModules, isNonDriveRelativeAbsolutePath, isObject, startsWithWordCharRE, withTrailingSlash } from "../utils";
+import { commonFsUtils, tryStatSync } from "../fsUtils";
 function splitFileAndPostfix(path: string) {
   const file = cleanUrl(path)
   return { file, postfix: path.slice(file.length) }
@@ -51,10 +52,6 @@ function tryCleanFsResolve (file: string) {
 }
 export function tryFsResolve(
   fsPath: string,
-  options: any,
-  tryIndex = true,
-  targetWeb = true,
-  skipPackageJson = false,
 ): string | undefined {
   // Dependencies like es5-ext use `#` in their paths. We don't support `#` in user
   // source code so we only need to perform the check for dependencies.
@@ -84,7 +81,6 @@ function resolvePackageEntry (
   options: any,
 ) {
   const { file: idWithoutPostfix, postfix } = splitFileAndPostfix(id)
-
   const cached = getResolvedCache('.', targetWeb)
   if (cached) {
     return cached + postfix
@@ -104,10 +100,6 @@ function resolvePackageEntry (
 
       const resolvedEntryPoint = tryFsResolve(
         entryPointPath,
-        options,
-        true,
-        true,
-        false,
       )
       if (resolvedEntryPoint) {
         setResolvedCache('.', resolvedEntryPoint, targetWeb)
@@ -125,7 +117,13 @@ export function tryNodeResolve(
 ) {
   const { root } = options
   const pkgId = cleanUrl(id)
-  const basedir = root
+  let basedir = root;
+  if (importer &&
+    path.isAbsolute(importer) &&
+    // css processing appends `*` for importer
+    (importer[importer.length - 1] === '*' || fs.existsSync(cleanUrl(importer)))) {
+    basedir = path.dirname(importer);
+  }
   const pkg = resolvePackageData(pkgId, basedir)
   if (!pkg) {
     return
@@ -142,10 +140,41 @@ export function tryNodeResolve(
 }
 
 export function resolvePlugin(resolveOptions: any) {
-  return {
+  const { root } = resolveOptions
+  const rootInRoot = tryStatSync(path.join(root, root))?.isDirectory() ?? false;
+
+  return { 
     name: 'vite:resolve',
     async resolveId(id: string, importer: string, resolveOpts: {}) {
       let res
+      if (id.startsWith(FS_PREFIX)) {
+        res = fsPathFromId(id);
+        return res
+      }
+      if (
+        id[0] === '/' &&
+        (rootInRoot || !id.startsWith(withTrailingSlash(root)))
+      ) {
+        const fsPath = path.resolve(root, id.slice(1))
+        console.log(fsPath, 'aaaa')
+        if ((res = tryFsResolve(fsPath))) {
+          console.log(res, 'bbb')
+          return res
+        }
+      }
+      if (id[0] === '.' || (importer?.endsWith('.html') && startsWithWordCharRE.test(id))) {
+        const basedir = importer ? path.dirname(importer) : process.cwd()
+        const fsPath = path.resolve(basedir, id)
+        if ((res = tryFsResolve(fsPath))) {
+          return res
+        }
+      }
+
+      if (isNonDriveRelativeAbsolutePath(id) &&
+      (res = tryFsResolve(id))) {
+        return res
+      }
+      
       if (bareImportRE.test(id)) {
         if (
           (res = tryNodeResolve(
@@ -161,23 +190,3 @@ export function resolvePlugin(resolveOptions: any) {
   }
 }
 
-function mapWithBrowserField(
-  relativePathInPkgDir: string,
-  map: Record<string, string | false>,
-): string | false | undefined {
-  const normalizedPath = path.posix.normalize(relativePathInPkgDir)
-
-  for (const key in map) {
-    const normalizedKey = path.posix.normalize(key)
-    if (
-      normalizedPath === normalizedKey ||
-      equalWithoutSuffix(normalizedPath, normalizedKey, '.js') ||
-      equalWithoutSuffix(normalizedPath, normalizedKey, '/index.js')
-    ) {
-      return map[key]
-    }
-  }
-}
-function equalWithoutSuffix(path: string, key: string, suffix: string) {
-  return key.endsWith(suffix) && key.slice(0, -suffix.length) === path
-}

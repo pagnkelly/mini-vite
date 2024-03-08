@@ -6,7 +6,7 @@ import type {
 import MagicString from 'magic-string'
 import { init, parse as parseImports } from 'es-module-lexer'
 import { ResolvedConfig } from "../config";
-import { isCSSRequest, stripBase } from "../utils";
+import { isCSSRequest, stripBase, transformStableResult, withTrailingSlash } from "../utils";
 
 
 const skipRE = /\.(?:map|json)(?:$|\?)/
@@ -44,6 +44,12 @@ export function importAnalysisPlugin(config: ResolvedConfig) {
         url = stripBase(url, base)
         let importerFile = importer
         const resolved = await (this as any).resolve(url, importerFile)
+        if (resolved.id.startsWith(withTrailingSlash(root))) {
+          url = resolved.id.slice(root.length);
+        } else {
+          url = resolved.id;
+        }
+
         return [url, resolved.id]
       }
       await Promise.all(
@@ -52,11 +58,22 @@ export function importAnalysisPlugin(config: ResolvedConfig) {
           let specifier = importSpecifier.n;
           if (specifier) {
             // normalize
-            const [url, resolvedId] = await normalizeUrl(specifier, start)
-            console.log(url, resolvedId)
+            const [url] = await normalizeUrl(specifier, start)
+            const rewrittenUrl = JSON.stringify(url);
+            const s = start - 1;
+            const e = end + 1;
+            str().overwrite(s, e, rewrittenUrl, {
+                contentOnly: true,
+            });
           }
         })
       )
+      if (s) {
+        return transformStableResult(s);
+      }
+      else {
+        return source;
+      }
     }
   }
 }
