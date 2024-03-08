@@ -156,7 +156,6 @@ export function resolvePlugin(resolveOptions: any) {
         (rootInRoot || !id.startsWith(withTrailingSlash(root)))
       ) {
         const fsPath = path.resolve(root, id.slice(1))
-        console.log(fsPath, 'aaaa')
         if ((res = tryFsResolve(fsPath))) {
           console.log(res, 'bbb')
           return res

@@ -18,6 +18,20 @@ export async function createPluginContainer(
     constructor () {
   
     }
+    async load(
+      options: {
+        id: string
+        resolveDependencies?: boolean
+      }
+    ){
+      const loadResult = await container.load(options.id, { ssr: false })
+      const code =
+      typeof loadResult === 'object' ? loadResult?.code : loadResult
+      if (code != null) {
+        await container.transform(code, options.id, { ssr: false })
+      }
+      return options
+    }
     async resolve(
       id: string,
       importer?: string,
@@ -155,6 +169,21 @@ export async function createPluginContainer(
     await Promise.all(parallelPromises)
   }
   const container = {
+    async load(id:string, options: any) {
+      const ssr = options?.ssr
+      const ctx = new Context()
+      for (const plugin of getSortedPlugins('load')) {
+        if (!plugin.load) continue
+        const handler = getHookHandler(plugin.load)
+        const result = await handleHookPromise(
+          handler.call(ctx as any, id, { ssr }),
+        )
+        if (result != null) {
+          return result
+        }
+      }
+      return null
+    },
     async buildStart() {
       await handleHookPromise(
         hookParallel(

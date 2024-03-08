@@ -1,5 +1,5 @@
 import type { ViteDevServer } from "..";
-import { cleanUrl, isImportRequest, isJSRequest, isCSSRequest } from "../../utils";
+import { cleanUrl, isImportRequest, isJSRequest, isCSSRequest, isDirectCSSRequest } from "../../utils";
 import path from 'node:path'
 import { getFsUtils } from "../../fsUtils";
 import { send } from "../../send";
@@ -22,7 +22,8 @@ export function transformMiddleware(server: ViteDevServer) {
         try {
           const result = await transformRequest(server, filePath)
           if (result) {
-            const type = isCSSRequest(url) ? 'css' : 'js'
+            const type = isDirectCSSRequest(url) ? 'css' : 'js'
+           
             return send(req, res, result.code, type, {
                 etag: result.etag,
                 // allow browser to cache npm deps!

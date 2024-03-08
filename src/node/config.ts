@@ -6,6 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import { importAnalysisPlugin } from './plugins/importAnalysis'
 import { resolvePlugin } from './plugins/resolve'
 import { createPluginHookUtils, getHookHandler, getSortedPluginsByHook, Plugin } from './plugins'
+import { assetPlugin } from './plugins/assets'
 export interface ResolvedConfig {
   base: string
   root: string
@@ -81,7 +82,7 @@ export async function resolveConfig(inlineConfig: InlineConfig): Promise<Resolve
     isSsrBuild: false,
     isPreview: false,
   }
-  const userPlugins: any = [vue()]
+  const userPlugins: any = [ vue()]
   config = await runConfigHook(config, userPlugins, configEnv)
   const { publicDir } = config
   const resolvedPublicDir =
@@ -102,7 +103,7 @@ export async function resolveConfig(inlineConfig: InlineConfig): Promise<Resolve
     plugins: userPlugins,
     getSortedPluginHooks: undefined!
   }
-  resolved.plugins = [...resolved.plugins, resolvePlugin(resolved), importAnalysisPlugin(resolved)]
+  resolved.plugins = [...resolved.plugins, assetPlugin(resolved), resolvePlugin(resolved), importAnalysisPlugin(resolved)]
 
   Object.assign(resolved, createPluginHookUtils(resolved.plugins))
   await Promise.all(

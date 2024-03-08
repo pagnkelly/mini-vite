@@ -6,7 +6,7 @@ import type {
 import MagicString from 'magic-string'
 import { init, parse as parseImports } from 'es-module-lexer'
 import { ResolvedConfig } from "../config";
-import { isCSSRequest, stripBase, transformStableResult, withTrailingSlash } from "../utils";
+import { isCSSRequest, stripBase, transformStableResult, withTrailingSlash, wrapId } from "../utils";
 
 
 const skipRE = /\.(?:map|json)(?:$|\?)/
@@ -49,7 +49,9 @@ export function importAnalysisPlugin(config: ResolvedConfig) {
         } else {
           url = resolved.id;
         }
-
+        if (url[0] !== '.' && url[0] !== '/') {
+          url = wrapId(resolved.id)
+        }
         return [url, resolved.id]
       }
       await Promise.all(

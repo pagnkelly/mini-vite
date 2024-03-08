@@ -4,33 +4,41 @@ import fsp from 'node:fs/promises'
 import getEtag from 'etag'
 import path from 'node:path'
 import convertSourceMap from 'convert-source-map'
-import { blankReplacer } from "../utils";
+import { blankReplacer, isObject } from "../utils";
 
 export async function transformRequest(
   server: ViteDevServer,
   filePath: string
 ) {
-
+  const { pluginContainer } = server
   let code = await fsp.readFile(filePath, 'utf-8')
-
   let map: SourceDescription['map'] = null
-
-  if (code) {
-    try {
-      map = (
-        convertSourceMap.fromSource(code) ||
-        (await convertSourceMap.fromMapFileSource(
-          code,
-          createConvertSourceMapReadMap(filePath),
-        ))
-      )?.toObject()
-
-      code = code.replace(convertSourceMap.mapFileCommentRegex, blankReplacer)
-    } catch (e) {
-      console.log(e)
+  const loadResult = await pluginContainer.load(filePath)
+  if (!loadResult) {
+    if (code) {
+      try {
+        map = (
+          convertSourceMap.fromSource(code) ||
+          (await convertSourceMap.fromMapFileSource(
+            code,
+            createConvertSourceMapReadMap(filePath),
+          ))
+        )?.toObject()
+  
+        code = code.replace(convertSourceMap.mapFileCommentRegex, blankReplacer)
+      } catch (e) {
+        console.log(e)
+      }
+    }
+  } else {
+    if (isObject(loadResult)) {
+      code = loadResult.code
+      map = loadResult.map
+    } else {
+      code = loadResult
     }
   }
-  const { pluginContainer } = server
+  
   const transformResult = await pluginContainer.transform(code, filePath, {
       inMap: map
   });

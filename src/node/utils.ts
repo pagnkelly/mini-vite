@@ -24,6 +24,9 @@ export const CSS_LANGS_RE =
   /\.(css|less|sass|scss|styl|stylus|pcss|postcss|sss)(?:$|\?)/
 export const isCSSRequest = (request: string): boolean =>
   CSS_LANGS_RE.test(request)
+  const directRequestRE = /[?&]direct\b/
+export const isDirectCSSRequest = (request: string): boolean =>
+CSS_LANGS_RE.test(request) && directRequestRE.test(request)
 const knownJsSrcRE =
   /\.(?:[jt]sx?|m[jt]s|vue|marko|svelte|astro|imba|mdx)(?:$|\?)/
 export const isJSRequest = (url: string): boolean => {
@@ -220,4 +223,11 @@ export function transformStableResult(
    code: s.toString(),
    map: null
  }
+}
+export const VALID_ID_PREFIX = `/@id/`
+const NULL_BYTE_PLACEHOLDER = `__x00__`;
+export function wrapId(id: string): string {
+  return id.startsWith(VALID_ID_PREFIX)
+    ? id
+    : VALID_ID_PREFIX + id.replace('\0', NULL_BYTE_PLACEHOLDER)
 }
