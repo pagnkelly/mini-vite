@@ -157,7 +157,6 @@ export function resolvePlugin(resolveOptions: any) {
       ) {
         const fsPath = path.resolve(root, id.slice(1))
         if ((res = tryFsResolve(fsPath))) {
-          console.log(res, 'bbb')
           return res
         }
       }
@@ -173,7 +172,6 @@ export function resolvePlugin(resolveOptions: any) {
       (res = tryFsResolve(id))) {
         return res
       }
-      
       if (bareImportRE.test(id)) {
         if (
           (res = tryNodeResolve(

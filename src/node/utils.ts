@@ -231,3 +231,33 @@ export function wrapId(id: string): string {
     ? id
     : VALID_ID_PREFIX + id.replace('\0', NULL_BYTE_PLACEHOLDER)
 }
+export function unwrapId(id: string): string {
+  return id.startsWith(VALID_ID_PREFIX)
+    ? id.slice(VALID_ID_PREFIX.length).replace(NULL_BYTE_PLACEHOLDER, '\0')
+    : id
+}
+
+const trailingSeparatorRE = /[?&]$/
+export function removeImportQuery(url: string): string {
+  return url.replace(importQueryRE, '$1').replace(trailingSeparatorRE, '')
+}
+const replacePercentageRE = /%/g
+export function injectQuery(url: string, queryToInject: string): string {
+  // encode percents for consistent behavior with pathToFileURL
+  // see #2614 for details
+  const resolvedUrl = new URL(
+    url.replace(replacePercentageRE, '%25'),
+    'relative:///',
+  )
+  const { search, hash } = resolvedUrl
+  let pathname = cleanUrl(url)
+  
+  pathname = isWindows ? slash(pathname) : pathname
+  return `${pathname}?${queryToInject}${search ? `&` + search.slice(1) : ''}${
+    hash ?? ''
+  }`
+}
+const windowsSlashRE = /\\/g
+export function slash(p: string): string {
+  return p.replace(windowsSlashRE, '/')
+}

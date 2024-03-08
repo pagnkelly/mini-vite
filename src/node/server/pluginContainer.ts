@@ -217,7 +217,6 @@ export async function createPluginContainer(
     async resolveId(rawId: string, importer= join(root, 'index.html'), options: any) {
       const ctx = new Context()
       let id = null
-
       for (const plugin of plugins) {
         if (!plugin.resolveId) continue
         const handler = plugin.resolveId
