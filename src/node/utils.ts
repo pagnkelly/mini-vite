@@ -1,5 +1,6 @@
 import path from 'node:path'
 import fs from 'node:fs'
+import { createHash } from 'node:crypto'
 import fsp from 'node:fs/promises'
 import type { ViteDevServer } from './server'
 import remapping from '@ampproject/remapping'
@@ -8,7 +9,11 @@ import { createFilter as _createFilter } from '@rollup/pluginutils'
 export function normalizePath(id: string): string {
   return path.posix.normalize(id)
 }
-
+export function getHash(text: Buffer | string, length = 8): string {
+  const h = createHash('sha256').update(text).digest('hex').substring(0, length)
+  if (length <= 64) return h
+  return h.padEnd(length, '_')
+}
 export function isDevServer(
   server: ViteDevServer,
 ): server is ViteDevServer {

@@ -49,7 +49,6 @@ export function assetPlugin(config: ResolvedConfig) {
           await fsp.readFile(file, 'utf-8'),
         )}`
       }
-      console.log(id, 'iiii')
 
       if (!urlRE.test(id) && !config.assetsInclude(cleanUrl(id))) {
         return

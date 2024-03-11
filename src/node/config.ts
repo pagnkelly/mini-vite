@@ -7,6 +7,7 @@ import { importAnalysisPlugin } from './plugins/importAnalysis'
 import { resolvePlugin } from './plugins/resolve'
 import { createPluginHookUtils, getHookHandler, getSortedPluginsByHook, Plugin } from './plugins'
 import { assetPlugin } from './plugins/assets'
+import { clientInjectionsPlugin } from './plugins/clientInjections'
 export interface ResolvedConfig {
   base: string
   root: string
@@ -103,7 +104,13 @@ export const DEFAULT_ASSETS_RE = new RegExp(
 
 export async function resolveConfig(inlineConfig: InlineConfig): Promise<ResolvedConfig> {
   let config = inlineConfig
+  const isNodeEnvSet = !!process.env.NODE_ENV
 
+  // some dependencies e.g. @vue/compiler-* relies on NODE_ENV for getting
+  // production-specific behavior, so set it early on
+  if (!isNodeEnvSet) {
+    process.env.NODE_ENV = 'development'
+  }
   // resolve root
   const resolvedRoot = normalizePath(
     config.root ? path.resolve(config.root) : process.cwd(),
@@ -155,7 +162,13 @@ export async function resolveConfig(inlineConfig: InlineConfig): Promise<Resolve
       return DEFAULT_ASSETS_RE.test(file) || assetsFilter(file)
     },
   }
-  resolved.plugins = [...resolved.plugins, assetPlugin(resolved), resolvePlugin(resolved), importAnalysisPlugin(resolved)]
+  resolved.plugins = [
+    ...resolved.plugins,
+    assetPlugin(resolved),
+    resolvePlugin(resolved),
+    clientInjectionsPlugin(resolved),
+    importAnalysisPlugin(resolved)
+  ]
 
   Object.assign(resolved, createPluginHookUtils(resolved.plugins))
   await Promise.all(
