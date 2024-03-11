@@ -1,7 +1,7 @@
 import { ViteDevServer } from "..";
 import { Options } from 'sirv'
 import sirv from 'sirv'
-import { cleanUrl, normalizePath } from "../../utils";
+import { cleanUrl, isImportRequest, normalizePath } from "../../utils";
 
 const knownJavascriptExtensionRE = /\.[tj]sx?$/
 
@@ -57,10 +57,11 @@ export function servePublicMiddleware(
   }
   return function viteServePublicMiddleware(req: any, res: any, next: any) {
     if (
-      (publicFiles && !publicFiles.has(toFilePath(req.url!)))
+      (publicFiles && !publicFiles.has(toFilePath(req.url!))) || isImportRequest(req.url!) 
     ) {
       return next()
     }
+
     serve(req, res, next)
   }
 }

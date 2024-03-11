@@ -1,7 +1,5 @@
 import type { ViteDevServer } from "..";
 import { cleanUrl, isImportRequest, isJSRequest, isCSSRequest, isDirectCSSRequest, removeImportQuery, unwrapId } from "../../utils";
-import path from 'node:path'
-import { getFsUtils } from "../../fsUtils";
 import { send } from "../../send";
 import { transformRequest } from "../transformRequest";
 
@@ -11,19 +9,19 @@ export function transformMiddleware(server: ViteDevServer) {
     if (req.method !== 'GET' || knownIgnoreList.has(req.url!)) {
       return next()
     }
-    const fsUtils = getFsUtils(server.config)
     let url = req.url && cleanUrl(req.url)
-    
+
     if (isJSRequest(url) ||
         isImportRequest(url) ||
+        isImportRequest(req.url) ||
         isCSSRequest(url) 
     ) {
       url = removeImportQuery(url)
       url = unwrapId(url);
+
       const result = await transformRequest(server, url)
       if (result) {
         const type = isDirectCSSRequest(url) ? 'css' : 'js'
-        
         return send(req, res, result.code, type, {
             etag: result.etag,
             // allow browser to cache npm deps!

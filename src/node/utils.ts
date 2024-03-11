@@ -4,6 +4,7 @@ import fsp from 'node:fs/promises'
 import type { ViteDevServer } from './server'
 import remapping from '@ampproject/remapping'
 import type { DecodedSourceMap, RawSourceMap } from '@ampproject/remapping'
+import { createFilter as _createFilter } from '@rollup/pluginutils'
 export function normalizePath(id: string): string {
   return path.posix.normalize(id)
 }
@@ -261,3 +262,29 @@ const windowsSlashRE = /\\/g
 export function slash(p: string): string {
   return p.replace(windowsSlashRE, '/')
 }
+export const rawRE = /(\?|&)raw(?:&|$)/
+export const urlRE = /(\?|&)url(?:&|$)/
+export function removeUrlQuery(url: string): string {
+  return url.replace(urlRE, '$1').replace(trailingSeparatorRE, '')
+}
+export function joinUrlSegments(a: string, b: string): string {
+  if (!a || !b) {
+    return a || b || ''
+  }
+  if (a[a.length - 1] === '/') {
+    a = a.substring(0, a.length - 1)
+  }
+  if (b[0] !== '/') {
+    b = '/' + b
+  }
+  return a + b
+}
+
+export function removeLeadingSlash(str: string): string {
+  return str[0] === '/' ? str.slice(1) : str
+}
+export const createFilter = _createFilter as (
+  include?: any,
+  exclude?: any,
+  options?: { resolve?: string | false | null },
+) => (id: string | unknown) => boolean

@@ -29,6 +29,7 @@
   "devDependencies": {
     "@ampproject/remapping": "^2.3.0",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@rollup/pluginutils": "^5.1.0",
     "@types/convert-source-map": "^2.0.3",
     "@types/etag": "^1.8.3",
     "@types/node": "^20.11.19",

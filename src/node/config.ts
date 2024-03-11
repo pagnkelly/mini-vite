@@ -1,5 +1,5 @@
 
-import { normalizePath } from './utils'
+import { createFilter, normalizePath } from './utils'
 import path from 'node:path'
 import fs from 'node:fs'
 import vue from '@vitejs/plugin-vue'
@@ -14,6 +14,7 @@ export interface ResolvedConfig {
   plugins?: any
   publicDir: string
   getSortedPluginHooks: any
+  assetsInclude: (file: string) => boolean
 }
 
 export interface InlineConfig {
@@ -30,6 +31,7 @@ export interface InlineConfig {
   };
   configFile?: string | false
   publicDir?: string | false
+  assetsInclude?: (file: string) => boolean
 }
 export interface ConfigEnv {
   command: 'build' | 'serve'
@@ -57,6 +59,48 @@ async function runConfigHook(
 
   return conf
 }
+export const KNOWN_ASSET_TYPES = [
+  // images
+  'apng',
+  'png',
+  'jpe?g',
+  'jfif',
+  'pjpeg',
+  'pjp',
+  'gif',
+  'svg',
+  'ico',
+  'webp',
+  'avif',
+
+  // media
+  'mp4',
+  'webm',
+  'ogg',
+  'mp3',
+  'wav',
+  'flac',
+  'aac',
+  'opus',
+  'mov',
+  'm4a',
+  'vtt',
+
+  // fonts
+  'woff2?',
+  'eot',
+  'ttf',
+  'otf',
+
+  // other
+  'webmanifest',
+  'pdf',
+  'txt',
+]
+export const DEFAULT_ASSETS_RE = new RegExp(
+  `\\.(` + KNOWN_ASSET_TYPES.join('|') + `)(\\?.*)?$`,
+)
+
 export async function resolveConfig(inlineConfig: InlineConfig): Promise<ResolvedConfig> {
   let config = inlineConfig
 
@@ -82,6 +126,11 @@ export async function resolveConfig(inlineConfig: InlineConfig): Promise<Resolve
     isSsrBuild: false,
     isPreview: false,
   }
+  const assetsFilter =
+  config.assetsInclude &&
+  (!Array.isArray(config.assetsInclude) || config.assetsInclude.length)
+    ? createFilter(config.assetsInclude)
+    : () => false
   const userPlugins: any = [ vue()]
   config = await runConfigHook(config, userPlugins, configEnv)
   const { publicDir } = config
@@ -101,7 +150,10 @@ export async function resolveConfig(inlineConfig: InlineConfig): Promise<Resolve
     server: config.server,
     publicDir: resolvedPublicDir,
     plugins: userPlugins,
-    getSortedPluginHooks: undefined!
+    getSortedPluginHooks: undefined!,
+    assetsInclude(file: string) {
+      return DEFAULT_ASSETS_RE.test(file) || assetsFilter(file)
+    },
   }
   resolved.plugins = [...resolved.plugins, assetPlugin(resolved), resolvePlugin(resolved), importAnalysisPlugin(resolved)]
 

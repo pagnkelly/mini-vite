@@ -178,6 +178,7 @@ export async function createPluginContainer(
         const result = await handleHookPromise(
           handler.call(ctx as any, id, { ssr }),
         )
+        // console.log(result, id, 'aaaa')
         if (result != null) {
           return result
         }
